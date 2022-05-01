@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'reveal-js-presentation/*'
 
 jobs:
   build:
@@ -18,7 +16,7 @@ jobs:
         run: mkdir slides && sudo chmod 777 slides
 
       - name: Build PDF
-        run: docker run --rm -t -v `pwd`:/slides -v ~:/home/user astefanutti/decktape reveal-js-presentation/index.html slides/reveal-js-presentation.pdf
+        run: docker run --rm -t -v `pwd`:/slides -v ~:/home/user astefanutti/decktape index.html slides/reveal-js-presentation.pdf
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
