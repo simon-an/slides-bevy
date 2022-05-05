@@ -1,42 +1,874 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=0.5, maximum-scale=2.0, user-scalable=no"
+    />
 
-		<title>reveal.js</title>
+    <title>reveal.js</title>
 
-		<link rel="stylesheet" href="dist/reset.css">
-		<link rel="stylesheet" href="dist/reveal.css">
-		<link rel="stylesheet" href="dist/theme/black.css">
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/black.css" />
 
-		<!-- Theme used for syntax highlighted code -->
-		<link rel="stylesheet" href="plugin/highlight/monokai.css">
-	</head>
-	<body>
-		<div class="reveal">
-			<div class="slides">
-				<section>What is ECS?</section>
-				<section>BEVY</section>
-				<section>CODE</section>
-				<section>RESOURCES</section>
-			</div>
-		</div>
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <section><h1>Why Rust?</h1></section>
+          <section data-markdown>
+            <script type="text/template">
+              #### RUST MAKES CERTAIN (BAD) PATTERNS MORE PAINFUL THAN OTHERS, WHICH IS A GOOD THING!
+              - The easiest for Rust are very often the easiest in general
+              - I had to learn good patterns the hard way, without Rust's help
+              - For games, one of these is ECS design, but there are OTHERS
+              - Rust rewards data-oriented design with clear ownership
 
-		<script src="dist/reveal.js"></script>
-		<script src="plugin/notes/notes.js"></script>
-		<script src="plugin/markdown/markdown.js"></script>
-		<script src="plugin/highlight/highlight.js"></script>
-		<script>
-			// More info about initialization & config:
-			// - https://revealjs.com/initialization/
-			// - https://revealjs.com/config/
-			Reveal.initialize({
-				hash: true,
+              [Catherine West](https://www.youtube.com/watch?v=oHYs-UqS458&list=PLehikk0dmwtw-OCG7NJUa0UgmlNwi4RGn&index=1&t=2s)
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              #### Personal Reasons to chose Rust for game development
+              - Code first
+              - No Heavy Editor
+              - Easy setup and build and learn incrementally
+              - My favorite language
+              - Great community on discord
+              - Flexible Target Platforms (Browser, Windows, Linux, etc)
 
-				// Learn about plugins: https://revealjs.com/plugins/
-				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ]
-			});
-		</script>
-	</body>
+              Simon
+            </script>
+          </section>
+        </section>
+        <section>
+          <section><h1>What is ECS?</h1></section>
+          <section><img src="assets/objects-are-bad.png" /></section>
+          <section><img src="assets/objects-hierarchy.png" /></section>
+          <section data-markdown>
+            <script type="text/template">
+              # THE ECS Way 1/2
+              - Entity - things in the world
+              - Component - Data of Entities
+              - System - update enitity data
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # THE ECS Way 2/2
+              ```rust
+              let entity = world.spawn()
+                .insert(Animal)
+                .insert(CanFly)
+                .insert(CanWalk)
+                .insert(AnimalSpecies::Hawk)
+                .insert(AnimalType::Bird)
+                .id();
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # GOAL: Avoid OOP practises
+              - Avoid Inheritance
+              - Avoid Composition
+              - Avoid Polymorphism
+              - Avoid Complexity
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # Core STRENGTHS
+              - Flexibility
+              - Reasonability
+              - Composability
+              - Performance (Rendering)
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # Enitity
+              - Just an id
+
+              ```rust
+              let mut world = World::new(); // This is a engine Resource
+              let entity: Entity = world.spawn().id();
+              ```
+              <!-- .element: class="fragment" -->
+              ```rust
+              let mut map: WorldMap = WorldMap::new(); // This is a game Resource
+              map.add(entity);
+              ```
+               <!-- .element: class="fragment" -->
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              # Bevy World
+              ```rust
+              pub struct World {
+                  id: WorldId,
+                  pub(crate) entities: Entities,
+                  pub(crate) components: Components,
+                  pub(crate) archetypes: Archetypes,
+                  pub(crate) storages: Storages,
+                  pub(crate) bundles: Bundles,
+                  pub(crate) removed_components: SparseSet<ComponentId, Vec<Entity>>,
+                  /// Access cache used by [WorldCell].
+                  pub(crate) archetype_component_access: ArchetypeComponentAccess,
+                  main_thread_validator: MainThreadValidator,
+                  pub(crate) change_tick: AtomicU32,
+                  pub(crate) last_change_tick: u32,
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Component Examples
+              - Position / Coordinates
+              - Sprite
+              - Charakter Health in an RPG
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Component Examples
+              ```rust
+              #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
+              #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Component)]
+              pub struct Coordinates {
+                  pub x: u16,
+                  pub y: u16,
+              }
+              ```
+              <!-- .element: class="fragment" -->
+              ```rust
+              #[derive(Component)]
+              pub struct Coordinates {
+                  pub x: u16,
+                  pub y: u16,
+              }
+              ```
+              <!-- .element: class="fragment" -->
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### System Example
+              ```rust
+              fn hello_world() {
+                println!("hello world!");
+              }
+              pub fn hide_popup(mut commands: Commands, popup: Res<PopupRef>) {
+                  commands.entity(popup.0).despawn_recursive();
+                  commands.remove_resource::<PopupRef>()
+              }
+              ```
+            </script>
+          </section>
+        </section>
+        <section>
+          <section><h1>BEVY Github</h1></section>
+          <section
+            data-markdown="sections/bevy-readme-slice.md"
+            data-separator="^---$"
+          ></section>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            # Live Examples
+            Clone the Bevy repo:
+            ```zsh
+            git clone https://github.com/bevyengine/bevy
+            cd bevy
+            git checkout latest
+            git checkout v0.7.0
+            ```
+            Try the examples in the examples folder
+            ```zsh
+            cargo run --example breakout
+            ```
+          </script>
+        </section>
+        <section>
+          <section><h1>BEVY Engine Core</h1></section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Dev Tools and Editors for Bevy
+              - bevy_inspector_egui editor-like inspector window
+              - bevy_editor_pls is an editor-like interface for fly camera, performance diagnostics, inspector panels.
+              - bevy_mod_debugdump is a tool to help visualize your App Schedule (systems and stages)
+              - bevy_lint checks your Bevy code for some common issues.
+              - bevycheck translates compiler errors to user-friendly Bevy-specific error messages
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Coordinate System
+              - Bevy uses a right-handed Y-up coordinate system.
+              - Bevy uses the same coordinate system for 3D, 2D, and UI, for consistency.
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Transforms
+              - a Transform is what allows you to place an object in the game world. It is a combination of the object's "translation" (position/coordinates), "rotation", and "scale" (size adjustment).
+              - You move objects around by modifying the translation, rotate them by modifying the rotation, and make them larger or smaller by modifying the scale.
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Hierarchical (Parent/Child) Entities
+              - Technically, the Entities/Components cannot form a hierarchy (the ECS is a flat data structure).
+              - Logical hierarchies are a common pattern in games.
+              - Bevy supports creating logical link between entities, by simply adding Parent and Children components on the respective entities.
+              - Commands has methods for adding children to entities, which automatically add the correct components.
+            </script>
+          </section>
+        </section>
+        <section>
+          <section><h1>BEVY Engine Usage</h1></section>
+          <section data-markdown>
+            <script type="text/template">
+              ## App / main.rs
+              ```rust
+              use bevy::prelude::*;
+
+              fn main() {
+                  App::new().run();
+              }
+              ```
+              ```zsh
+              cargo run
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Plugins 1/2
+              - used to organize bevy features
+              - used to organize a game
+              - used to create libraries for bevy
+              ```rust
+                fn main() {
+                App::new()
+                    // This already creates a window
+                    // because it contains Core, Input and Window Plugin
+                    .add_plugins(DefaultPlugins)
+                    .run();
+                }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Plugins 2/2
+              ```rust
+              struct MyPlugin;
+
+              impl Plugin for MyPlugin {
+                  fn build(&self, app: &mut App) {
+                      app
+                          .init_resource::<MyOtherResource>()
+                          .add_event::<MyEvent>()
+                          .add_startup_system(plugin_init)
+                          .add_system(my_system);
+                  }
+              }
+
+              fn main() {
+                  App::new()
+                      .add_plugins(DefaultPlugins)
+                      .add_plugin(MyPlugin)
+                      .run();
+              }
+
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Resources
+              Entities and Components are great for representing complex, query-able groups of data. But most Apps will also require "globally unique" data of some kind. In Bevy ECS, we represent globally unique data using Resources.
+              - Elapsed Time
+              - Asset Collections (sounds, textures, meshes)
+              - Renderers
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Resources
+              ```rust
+              impl Plugin for HelloPlugin {
+                  fn build(&self, app: &mut App) {
+                      // the reason we call from_seconds with the true flag is to make the timer repeat itself
+                      app.insert_resource(GreetTimer(Timer::from_seconds(2.0, true)))
+                          .add_startup_system(add_people)
+                          .add_system(greet_people);
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Systems
+              ```rust
+              fn greet_people(time: Res<Time>, query: Query<&Name, With<Person>>) {
+                  for name in query.iter() {
+                      println!("hello {}!", name.0);
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Systems: Local Resources
+              ```rust
+              #[derive(Default)]
+              struct MyState;
+
+              fn my_system1(mut local: Local<MyState>) {
+                  // you can do anything you want with the local here
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Explicit System Ordering
+              ```rust
+              fn main() {
+                App::new()
+                    .add_plugins(DefaultPlugins)
+
+                    // order doesn't matter for these systems:
+                    .add_system(particle_effects)
+                    .add_system(npc_behaviors)
+                    .add_system(enemy_movement)
+
+                    .add_system(input_handling)
+
+                    .add_system(
+                        player_movement
+                            // `player_movement` must always run before `enemy_movement`
+                            .before(enemy_movement)
+                            // `player_movement` must always run after `input_handling`
+                            .after(input_handling)
+                    )
+                    .run();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+                ### System Sets
+                ```rust
+                fn main() {
+                  App::new()
+                      .add_plugins(DefaultPlugins)
+
+                      // group our input handling systems into a set
+                      .add_system_set(
+                          SystemSet::new()
+                              .label("input")
+                              .with_system(keyboard_input)
+                              .with_system(gamepad_input)
+                      )
+
+                      // our "net" systems should run before "input"
+                      .add_system_set(
+                          SystemSet::new()
+                              .label("net")
+                              .before("input")
+                              // individual systems can still have
+                              // their own labels (and ordering)
+                              .with_system(server_session.label("session"))
+                              .with_system(server_updates.after("session"))
+                      )
+
+                      // some ungrouped systems
+                      .add_system(player_movement.after("input"))
+                      .add_system(session_ui.after("session"))
+                      .add_system(smoke_particles)
+
+                      .run();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+                ### System Chaining
+                ```rust
+                fn main() {
+                  App::new()
+                      // ...
+                      .add_system(net_receive.chain(handle_io_errors))
+                      // ...
+                      .run();
+              }
+                ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Lifecycle/Stages 1/2
+              All systems to be run by Bevy are contained in stages. Every frame update, Bevy executes each stage, in order. Within each stage, Bevy's scheduling algorithm can run many systems in parallel, using multiple CPU cores for good performance.
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Lifecycle/Stages 2/2
+              ```rust
+              pub enum StartupStage {
+                PreStartup,
+                Startup,
+                PostStartup,
+              }
+              pub enum CoreStage {
+                First,
+                PreUpdate,
+                Update,
+                PostUpdate,
+                Last,
+              }
+              ```
+            </script>
+          </section>
+
+          <section data-markdown>
+            <script type="text/template">
+                ## Custom Stage
+                ```rust
+                fn main() {
+                  // label for our debug stage
+                  static DEBUG: &str = "debug";
+
+                  App::new()
+                      .add_plugins(DefaultPlugins)
+
+                      // add DEBUG stage after Bevy's Update
+                      // also make it single-threaded
+                      .add_stage_after(CoreStage::Update, DEBUG, SystemStage::single_threaded())
+
+                      // systems are added to the `CoreStage::Update` stage by default
+                      .add_system(player_gather_xp)
+                      .add_system(player_take_damage)
+
+                      // add our debug systems
+                      .add_system_to_stage(DEBUG, debug_player_hp)
+                      .add_system_to_stage(DEBUG, debug_stats_change)
+                      .add_system_to_stage(DEBUG, debug_new_hostiles)
+
+                      .run();
+                }
+                ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### States
+              ```rust
+              #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+              enum AppState {
+                  MainMenu,
+                  InGame,
+                  Paused,
+              }
+
+              fn main() {
+                  App::new()
+                      .add_plugins(DefaultPlugins)
+
+                      // add the app state type
+                      .add_state(AppState::MainMenu)
+
+                      // add systems to run regardless of state, as usual
+                      .add_system(play_music)
+
+                      // systems to run only in the main menu
+                      .add_system_set(
+                        SystemSet::on_update(AppState::MainMenu)
+                          .with_system(handle_ui_buttons)
+                      )
+
+                      // setup when entering the state
+                      .add_system_set(
+                        SystemSet::on_enter(AppState::MainMenu)
+                          .with_system(setup_menu)
+                      )
+
+                      // cleanup when exiting the state
+                      .add_system_set(
+                        SystemSet::on_exit(AppState::MainMenu)
+                          .with_system(close_menu)
+                      )
+                      .run();
+              }
+
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### Queries and Change Detection
+              ```rust
+              /// Print the stats of friendly players when they change
+              fn debug_stats_change(
+                  query: Query<
+                      // components
+                      (&Health, &PlayerXp),
+                      // filters
+                      (Without<Enemy>, Or<(Changed<Health>, Changed<PlayerXp>)>),
+                  >,
+              ) {
+                  for (health, xp) in query.iter() {
+                      eprintln!(
+                          "hp: {}+{}, xp: {}",
+                          health.hp, health.extra, xp.0
+                      );
+                  }
+              }
+
+              /// detect new enemies and print their health
+              fn debug_new_hostiles(
+                  query: Query<(Entity, &Health), Added<Enemy>>,
+              ) {
+                  for (entity, health) in query.iter() {
+                      eprintln!("Entity {:?} is now an enemy! HP: {}", entity, health.hp);
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Input
+              ```rust
+              fn mouse_button_input(
+                  buttons: Res<Input<MouseButton>>,
+              ) {
+                  if buttons.just_pressed(MouseButton::Left) {
+                      // Left button was pressed
+                  }
+                  if buttons.just_released(MouseButton::Left) {
+                      // Left Button was released
+                  }
+                  if buttons.pressed(MouseButton::Right) {
+                      // Right Button is being held down
+                  }
+                  // we can check multiple at once with `.any_*`
+                  if buttons.any_just_pressed([MouseButton::Left, MouseButton::Right]) {
+                      // Either the left or the right button was just pressed
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Commands 1/2
+              - Use Commands to spawn/despawn entities, add/remove components on existing entities, manage resources.
+              - These actions do not take effect immediately; they are queued to be performed later when it is safe to do so.
+              - That means your other systems will see them on the next frame update
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Commands 2/2
+
+              ```rust
+              fn spawn_player(
+                  mut commands: Commands,
+              ) {
+                // manage resources
+                commands.insert_resource(GoalsReached { main_goal: false, bonus: false });
+                commands.remove_resource::<MyResource>();
+                // create a new entity using `spawn`
+                let entity_id = commands.spawn()
+                    // add a component
+                    .insert(ComponentA)
+                    // add a bundle
+                    .insert_bundle(MyBundle::default())
+                    // get the Entity ID
+                    .id();
+                // shorthand for creating an entity with a bundle
+                  commands.spawn_bundle(PlayerBundle {
+                      name: PlayerName("Henry".into()),
+                      xp: PlayerXp(1000),
+                      health: Health {
+                          hp: 100.0, extra: 20.0
+                      },
+                      _p: Player,
+                      sprite: Default::default(),
+                  });
+                  // spawn another entity
+                  let other = commands.spawn_bundle((
+                      ComponentA::default(),
+                      ComponentB::default(),
+                      ComponentC::default(),
+                  )).id();
+
+                  // add/remove components of an existing entity
+                  commands.entity(entity_id)
+                      .insert(ComponentB)
+                      .remove::<ComponentA>()
+                      .remove_bundle::<MyBundle>();
+
+                  // despawn an entity
+                  commands.entity(other).despawn();
+              }
+              fn make_all_players_hostile(
+                  mut commands: Commands,
+                  query: Query<Entity, With<Player>>,
+              ) {
+                  for entity in query.iter() {
+                      // add an `Enemy` component to the entity
+                      commands.entity(entity).insert(Enemy);
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+                ##  Entities and Rendering
+                ```rust
+                pub(crate) fn spawn_tetromino(
+                  mut commands: Commands,
+                  board: Res<Board>,
+                  mut spawn_event_rdr: EventReader<SpawnEvent>,
+                  mut game_over_event_wtr: EventWriter<GameOverEvent>,
+                ) {
+                  for event in spawn_event_rdr.iter() {
+                    // ...
+                    commands.entity(board.entity).with_children(|mut parent| {
+                      for block in blocks.into_iter() {
+                        // ...
+                        let entity = parent
+                        .spawn()
+                        .insert_bundle(bevy_sprite::bundle::SpriteBundle {
+                            sprite: Sprite {
+                                color: Color::rgb(block.color.r(), block.color.g(), block.color.b()),
+                                custom_size: Some(Vec2::splat(board.tile_size)),
+                                ..Default::default()
+                            },
+                            transform: Transform::from_translation(Vec3::new(
+                                (coordinates.x as f32 * board.tile_size) + (board.tile_size / 2.0),
+                                board.bounds.size.y
+                                    - (coordinates.y as f32 * board.tile_size)
+                                    - 0.5 * board.tile_size,
+                                2.0,
+                            )),
+                            ..Default::default()
+                        })
+                        .insert(CurrentTetromino {})
+                        .insert(Name::new(format!("Block ({:?})", block.tetromino_type)))
+                        .insert(coordinates.clone())
+                        .insert(block.clone())
+                        .id();
+                      }
+                    });
+                  }
+                }
+                ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Events
+              ```rust
+              struct LevelUpEvent(Entity);
+
+              fn player_level_up(
+                  mut ev_levelup: EventWriter<LevelUpEvent>,
+                  query: Query<(Entity, &PlayerXp)>,
+              ) {
+                  for (entity, xp) in query.iter() {
+                      if xp.0 > 1000 {
+                          ev_levelup.send(LevelUpEvent(entity));
+                      }
+                  }
+              }
+
+              fn debug_levelups(
+                  mut ev_levelup: EventReader<LevelUpEvent>,
+              ) {
+                  for ev in ev_levelup.iter() {
+                      eprintln!("Entity {:?} leveled up!", ev.0);
+                  }
+              }
+
+              fn main() {
+                App::new()
+                    // ...
+                    .add_event::<LevelUpEvent>()
+                    .add_system(player_level_up)
+                    .add_system(debug_levelups)
+                    // ...
+                    .run();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Time
+              - The Time resource is your main global source of timing information
+              - Can be accessed from any system
+              - You should derive all timings from it
+              - Bevy updates these values at the beginning of every frame
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Timers 1/3
+              ```rust
+              fn asteroids_fly(
+                  time: Res<Time>,
+                  mut q: Query<&mut Transform, With<Asteroid>>,
+              ) {
+                  for mut transform in q.iter_mut() {
+                      // move our asteroids along the X axis
+                      // at a speed of 10.0 units per second
+                      transform.translation.x += 10.0 * time.delta_seconds();
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Timers 2/3
+              ```rust
+              use std::time::Instant;
+
+              /// Say, for whatever reason, we want to keep track
+              /// of when exactly some specific entities were spawned.
+              #[derive(Component)]
+              struct SpawnedTime(Instant);
+
+              fn spawn_my_stuff(
+                  mut commands: Commands,
+                  time: Res<Time>,
+              ) {
+                  commands.spawn()
+                      .insert(SpawnedTime(time.startup() + time.time_since_startup()));
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Timers 3/3
+              ```rust
+              #[derive(Component)]
+              struct FuseTime {
+                  /// track when the bomb should explode (non-repeating timer)
+                  timer: Timer,
+              }
+
+              mut commands: Commands,
+              mut q: Query<(Entity, &mut FuseTime)>,
+              time: Res<Time>,
+              ) {
+                  for (entity, mut fuse_timer) in q.iter_mut() {
+                      // timers gotta be ticked, to work
+                      fuse_timer.timer.tick(time.delta());
+
+                      // if it finished, despawn the bomb
+                      if fuse_timer.timer.finished() {
+                          commands.entity(entity).despawn();
+                      }
+                  }
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## TESTS
+              ```rust
+              fn headless_mode() {
+                App::new()
+                    .insert_resource(WgpuSettings {
+                        backends: None,
+                        ..Default::default()
+                    })
+                    .add_plugins_with(DefaultPlugins, |group| group.disable::<WinitPlugin>())
+                    .add_plugin(EguiPlugin)
+                    .update();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## EGUI
+              - Popular Multiplatfrom / Target UI Crate
+              - Used in many crates and plugins in the bevy ecosystem
+              - Can easily be used to create a game ui
+            </script>
+          </section>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            ## Conclusion
+            - Don't confuse OOP with "Data Oriented Design"
+            - Getting into Game Development with Rust is easy
+            - Unity and Unreal Engine removed from personal TODO list
+            - ECS + Rust feals like a natural fit
+            - Game Development + Rust feals like a natural fit
+            - More to come (3D in Space)
+          </script>
+        </section>
+        <section>
+          <section>
+            <h4>RESOURCES</h4>
+            <ul>
+              <li>
+                ECS: https://www.youtube.com/channel/UCZzs3Umh6sRiYS_IQIQDThw
+              </li>
+              <li>
+                Using RUST FOR GAME DEVELOPMENT: https://youtu.be/oHYs-UqS458
+              </li>
+              <li>https://github.com/bevyengine</li>
+              <li>https://bevyengine.org/learn/book/introduction/</li>
+              <li>https://bevy-cheatbook.github.io/</li>
+            </ul>
+          </section>
+        </section>
+        <section>
+          <section><h1>Coding Score implementation</h1></section>
+        </section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script src="plugin/zoom/zoom.js"></script>
+    <script src="plugin/search/search.js"></script>
+    <script>
+      // More info about initialization & config:
+      // - https://revealjs.com/initialization/
+      // - https://revealjs.com/config/
+      Reveal.initialize({
+        hash: true,
+        slideNumber: true,
+        // Learn about plugins: https://revealjs.com/plugins/
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
 </html>
