@@ -256,6 +256,7 @@
               - used to organize bevy features
               - used to organize a game
               - used to create libraries for bevy
+
               ```rust
                 fn main() {
                 App::new()
@@ -308,25 +309,31 @@
               ```rust
               impl Plugin for HelloPlugin {
                   fn build(&self, app: &mut App) {
-                      // the reason we call from_seconds with the true flag is to make the timer repeat itself
-                      app.insert_resource(GreetTimer(Timer::from_seconds(2.0, true)))
-                          .add_startup_system(add_people)
-                          .add_system(greet_people);
+                      // the reason we call from_seconds with the true
+                      // flag is to make the timer repeat itself
+                      app.insert_resource(
+                        GreetTimer(Timer::from_seconds(2.0, true))
+                      )
                   }
               }
               ```
+              - Resources can be added globally or in systems
             </script>
           </section>
           <section data-markdown>
             <script type="text/template">
               ## Systems
               ```rust
-              fn greet_people(time: Res<Time>, query: Query<&Name, With<Person>>) {
+              fn greet_people(
+                time: Res<Time>, query: Query<&Name, With<Person>>
+              ) {
                   for name in query.iter() {
                       println!("hello {}!", name.0);
                   }
               }
               ```
+              - Systems are called by the Engine each frame
+              - Parameters of System come from the ECS automatically
             </script>
           </section>
           <section data-markdown>
@@ -340,84 +347,77 @@
                   // you can do anything you want with the local here
               }
               ```
+              - Local<T> is managed by ECS automatically
+              - ECS creates an instance by calling Default::default()
             </script>
           </section>
           <section data-markdown>
             <script type="text/template">
               ### Explicit System Ordering
               ```rust
+              App::new()
+                // order doesn't matter for these systems:
+                .add_system(particle_effects)
+                .add_system(npc_behaviors)
+                .add_system(enemy_movement)
+                .add_system(input_handling)
+                .add_system(
+                  player_movement
+                  // `player_movement` must always run before `enemy_movement`
+                  .before(enemy_movement)
+                  // `player_movement` must always run after `input_handling`
+                  .after(input_handling)
+                )
+                .run();
+              ```
+              - Systems can be ordered with .before and .after
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### System Sets
+              ```rust
+                App::new()
+                .add_plugins(DefaultPlugins)
+                // group our input handling systems into a set
+                .add_system_set(
+                    SystemSet::new()
+                        .label("input")
+                        .with_system(keyboard_input)
+                        .with_system(gamepad_input)
+                )
+                // our "net" systems should run before "input"
+                .add_system_set(
+                    SystemSet::new()
+                        .label("net")
+                        .before("input")
+                        // individual systems can still have
+                        // their own labels (and ordering)
+                        .with_system(server_session.label("session"))
+                        .with_system(server_updates.after("session"))
+                )
+                // some ungrouped systems
+                .add_system(player_movement.after("input"))
+                .add_system(session_ui.after("session"))
+                .add_system(smoke_particles)
+                .run();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### System Chaining
+              ```rust
               fn main() {
                 App::new()
-                    .add_plugins(DefaultPlugins)
-
-                    // order doesn't matter for these systems:
-                    .add_system(particle_effects)
-                    .add_system(npc_behaviors)
-                    .add_system(enemy_movement)
-
-                    .add_system(input_handling)
-
-                    .add_system(
-                        player_movement
-                            // `player_movement` must always run before `enemy_movement`
-                            .before(enemy_movement)
-                            // `player_movement` must always run after `input_handling`
-                            .after(input_handling)
-                    )
+                    // ...
+                    .add_system(net_receive.chain(handle_io_errors))
+                    // ...
                     .run();
               }
               ```
-            </script>
-          </section>
-          <section data-markdown>
-            <script type="text/template">
-                ### System Sets
-                ```rust
-                fn main() {
-                  App::new()
-                      .add_plugins(DefaultPlugins)
-
-                      // group our input handling systems into a set
-                      .add_system_set(
-                          SystemSet::new()
-                              .label("input")
-                              .with_system(keyboard_input)
-                              .with_system(gamepad_input)
-                      )
-
-                      // our "net" systems should run before "input"
-                      .add_system_set(
-                          SystemSet::new()
-                              .label("net")
-                              .before("input")
-                              // individual systems can still have
-                              // their own labels (and ordering)
-                              .with_system(server_session.label("session"))
-                              .with_system(server_updates.after("session"))
-                      )
-
-                      // some ungrouped systems
-                      .add_system(player_movement.after("input"))
-                      .add_system(session_ui.after("session"))
-                      .add_system(smoke_particles)
-
-                      .run();
-              }
-              ```
-            </script>
-          </section>
-          <section data-markdown>
-            <script type="text/template">
-                ### System Chaining
-                ```rust
-                fn main() {
-                  App::new()
-                      // ...
-                      .add_system(net_receive.chain(handle_io_errors))
-                      // ...
-                      .run();
-              }
-                ```
+              - handle_io_errors is called with the result of net_receive
             </script>
           </section>
           <section data-markdown>
@@ -448,36 +448,36 @@
 
           <section data-markdown>
             <script type="text/template">
-                ## Custom Stage
-                ```rust
-                fn main() {
-                  // label for our debug stage
-                  static DEBUG: &str = "debug";
+              ## Custom Stage
+              ```rust
+              fn main() {
+                // label for our debug stage
+                static DEBUG: &str = "debug";
 
-                  App::new()
-                      .add_plugins(DefaultPlugins)
+                App::new()
+                    .add_plugins(DefaultPlugins)
 
-                      // add DEBUG stage after Bevy's Update
-                      // also make it single-threaded
-                      .add_stage_after(CoreStage::Update, DEBUG, SystemStage::single_threaded())
+                    // add DEBUG stage after Bevy's Update
+                    // also make it single-threaded
+                    .add_stage_after(CoreStage::Update, DEBUG, SystemStage::single_threaded())
 
-                      // systems are added to the `CoreStage::Update` stage by default
-                      .add_system(player_gather_xp)
-                      .add_system(player_take_damage)
+                    // systems are added to the `CoreStage::Update` stage by default
+                    .add_system(player_gather_xp)
+                    .add_system(player_take_damage)
 
-                      // add our debug systems
-                      .add_system_to_stage(DEBUG, debug_player_hp)
-                      .add_system_to_stage(DEBUG, debug_stats_change)
-                      .add_system_to_stage(DEBUG, debug_new_hostiles)
+                    // add our debug systems
+                    .add_system_to_stage(DEBUG, debug_player_hp)
+                    .add_system_to_stage(DEBUG, debug_stats_change)
+                    .add_system_to_stage(DEBUG, debug_new_hostiles)
 
-                      .run();
-                }
-                ```
+                    .run();
+              }
+              ```
             </script>
           </section>
           <section data-markdown>
             <script type="text/template">
-              ### States
+              ### States - only for pro's :D
               ```rust
               #[derive(Debug, Clone, Eq, PartialEq, Hash)]
               enum AppState {
@@ -549,6 +549,7 @@
                   }
               }
               ```
+              - Change detection is done with a simple query in the systems for
             </script>
           </section>
           <section data-markdown>
@@ -642,50 +643,6 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-                ##  Entities and Rendering
-                ```rust
-                pub(crate) fn spawn_tetromino(
-                  mut commands: Commands,
-                  board: Res<Board>,
-                  mut spawn_event_rdr: EventReader<SpawnEvent>,
-                  mut game_over_event_wtr: EventWriter<GameOverEvent>,
-                ) {
-                  for event in spawn_event_rdr.iter() {
-                    // ...
-                    commands.entity(board.entity).with_children(|mut parent| {
-                      for block in blocks.into_iter() {
-                        // ...
-                        let entity = parent
-                        .spawn()
-                        .insert_bundle(bevy_sprite::bundle::SpriteBundle {
-                            sprite: Sprite {
-                                color: Color::rgb(block.color.r(), block.color.g(), block.color.b()),
-                                custom_size: Some(Vec2::splat(board.tile_size)),
-                                ..Default::default()
-                            },
-                            transform: Transform::from_translation(Vec3::new(
-                                (coordinates.x as f32 * board.tile_size) + (board.tile_size / 2.0),
-                                board.bounds.size.y
-                                    - (coordinates.y as f32 * board.tile_size)
-                                    - 0.5 * board.tile_size,
-                                2.0,
-                            )),
-                            ..Default::default()
-                        })
-                        .insert(CurrentTetromino {})
-                        .insert(Name::new(format!("Block ({:?})", block.tetromino_type)))
-                        .insert(coordinates.clone())
-                        .insert(block.clone())
-                        .id();
-                      }
-                    });
-                  }
-                }
-                ```
-            </script>
-          </section>
-          <section data-markdown>
-            <script type="text/template">
               ## Events
               ```rust
               struct LevelUpEvent(Entity);
@@ -717,6 +674,45 @@
                     .add_system(debug_levelups)
                     // ...
                     .run();
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ##  Entities and Rendering
+              ```rust
+              pub(crate) fn spawn_tetromino(
+                mut commands: Commands,
+                board: Res<Board>,
+                mut spawn_event_rdr: EventReader<SpawnEvent>,
+                mut game_over_event_wtr: EventWriter<GameOverEvent>,
+              ) {
+                let translation = Vec3::new(......);
+                for event in spawn_event_rdr.iter() {
+                  // ...
+                  commands.entity(board.entity).with_children(|mut parent| {
+                    for block in blocks.into_iter() {
+                      // ...
+                      let entity = parent
+                      .spawn()
+                      .insert_bundle(bevy_sprite::bundle::SpriteBundle {
+                        sprite: Sprite {
+                          color: Color::from(block),
+                          custom_size: Some(Vec2::splat(board.tile_size)),
+                          ..Default::default()
+                        },
+                        transform: Transform::from_translation(translation),
+                        ..Default::default()
+                      })
+                      .insert(CurrentTetromino {})
+                      .insert(Name::new(format!("Block ({:?})", block.tetromino_type)))
+                      .insert(coordinates.clone())
+                      .insert(block.clone())
+                      .id();
+                    }
+                  });
+                }
               }
               ```
             </script>
