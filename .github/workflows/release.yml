@@ -9,23 +9,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - id: bump
-        uses: zwaldowski/match-label-action@v1
+      - name: Auto Increment Semver Action
+        uses: MCKanpolat/auto-semver-action@1.0.5
+        id: versioning
         with:
-          allowed: major,minor,patch
-      - uses: zwaldowski/semver-release-action@v1
-        with:
-          bump: ${{ steps.bump.outputs.match }}
+          releaseType: patch 
+          incrementPerCommit: false
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - run: echo "${{ steps.next_version.outputs.version }}"
+      - name: Next Release Number
+        run: echo ${{ steps.versioning.outputs.version }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.next_version.outputs.version }}
-          release_name: Release ${{ steps.next_version.outputs.version }}
+          tag_name: ${{ steps.versioning.outputs.version }}
+          release_name: Release ${{ steps.versioning.outputs.version }}
           draft: false
           prerelease: false
       - name: Upload Release Asset
