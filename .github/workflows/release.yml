@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Auto Increment Semver Action
-        uses: MCKanpolat/auto-semver-action@1.0.5
+        uses: MCKanpolat/auto-semver-action@1
         id: versioning
         with:
           releaseType: patch 
@@ -20,7 +20,7 @@ jobs:
         run: echo ${{ steps.versioning.outputs.version }}
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: shogo82148/actions-create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -28,7 +28,7 @@ jobs:
           release_name: Release ${{ steps.versioning.outputs.version }}
           draft: false
           prerelease: false
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v4
         with:
           ref: pdf
           path: slides
