@@ -1,8 +1,11 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
     <title>reveal.js</title>
 
@@ -16,7 +19,11 @@
   <body>
     <div class="reveal">
       <div class="slides">
-        <section><h1>Game Development with Rust</h1></section>
+        <section>
+          <h1>Game Development with Rust</h1>
+          <p>Simon Potzernheim</p>
+          <p>12/2024</p>
+        </section>
         <section>
           <section><h1>Why Rust?</h1></section>
           <section data-markdown>
@@ -36,7 +43,7 @@
               - Code first
               - No Heavy Editor
               - Easy setup and build and learn incrementally
-              - My favorite language
+              - My favorite language & ecosystem
               - Great community on discord
               - Flexible Target Platforms (Browser, Windows, Linux, etc)
 
@@ -50,7 +57,7 @@
           <section><img src="assets/objects-hierarchy.png" /></section>
           <section data-markdown>
             <script type="text/template">
-              # THE ECS Way 1/2
+              ## THE ECS Way 1/2
               - Entity - things in the world
               - Component - Data of Entities
               - System - update enitity data
@@ -58,21 +65,39 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              # THE ECS Way 2/2
+              ## THE ECS Way 2/3 
               ```rust
               let entity = world.spawn()
-                .insert(Animal)
-                .insert(CanFly)
-                .insert(CanWalk)
-                .insert(AnimalSpecies::Hawk)
-                .insert(AnimalType::Bird)
-                .id();
+              .insert(Animal)
+              .insert(CanFly)
+              .insert(CanWalk)
+              .insert(AnimalSpecies::Hawk)
+              .insert(AnimalType::Bird)
+              .id();
               ```
+              Bevy 0.7 - 07/2022
             </script>
           </section>
           <section data-markdown>
             <script type="text/template">
-              # GOAL: Avoid OOP practises
+              ## THE ECS Way 3/3
+              ```rust
+              let entity = world.spawn(
+                (
+                  Animal,
+                  CanFly,
+                  CanWalk,
+                  AnimalSpecies::Hawk,
+                  AnimalType::Bird
+                )
+                .id();
+              ```
+              Bevy 0.15 - 12/2024
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## GOAL: Avoid OOP practises
               - Avoid Inheritance
               - Avoid Composition
               - Avoid Polymorphism
@@ -81,7 +106,7 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              # Core STRENGTHS
+              ## Core STRENGTHS
               - Flexibility
               - Reasonability
               - Composability
@@ -90,12 +115,12 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              # Enitity
-              - Just an id
+              ## Entity
+              - Entity is just an id existing in the world
 
               ```rust
               let mut world = World::new(); // This is a engine Resource
-              let entity: Entity = world.spawn().id();
+              let entity: Entity = world.spawn((components go here)).id();
               ```
               <!-- .element: class="fragment" -->
               ```rust
@@ -107,7 +132,29 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              # Bevy World
+              ### Entity can have children
+              This is a logical hierarchy. The ECS itself is a flat data structure.
+              ```rust
+              menu.with_children(|parent| {
+                parent.spawn(
+                  ( 
+                    Text::new("Play"),
+                    TextFont {
+                        font: asset_server.load("fonts/pixeled.ttf"),
+                        font_size: 40.0,
+                    },
+                    TextColor(Color::rgb(0.9, 0.9, 0.9)),
+                    Button,
+                    BackGroundColor(Color::rgb(0.1, 0.1, 0.1)),
+                  )
+                );
+              })
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ## Bevy World
               ```rust
               pub struct World {
                   id: WorldId,
@@ -116,12 +163,10 @@
                   pub(crate) archetypes: Archetypes,
                   pub(crate) storages: Storages,
                   pub(crate) bundles: Bundles,
-                  pub(crate) removed_components: SparseSet<ComponentId, Vec<Entity>>,
-                  /// Access cache used by [WorldCell].
-                  pub(crate) archetype_component_access: ArchetypeComponentAccess,
-                  main_thread_validator: MainThreadValidator,
-                  pub(crate) change_tick: AtomicU32,
-                  pub(crate) last_change_tick: u32,
+                  /// new in 2024:
+                  pub(crate) observers: Observers,
+                  ...
+  
               }
               ```
             </script>
@@ -137,15 +182,11 @@
           <section data-markdown>
             <script type="text/template">
               ### Component Examples
+              Ofen Components are just markers
               ```rust
-              #[cfg_attr(feature = "debug", derive(bevy_inspector_egui::Inspectable))]
-              #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Component)]
-              pub struct Coordinates {
-                  pub x: u16,
-                  pub y: u16,
-              }
+              #[derive(Component, Default)]
+              struct SecondWindowCamera3d;
               ```
-              <!-- .element: class="fragment" -->
               ```rust
               #[derive(Component)]
               pub struct Coordinates {
@@ -153,7 +194,7 @@
                   pub y: u16,
               }
               ```
-              <!-- .element: class="fragment" -->
+              ( because of systems)
             </script>
           </section>
           <section data-markdown>
@@ -164,19 +205,72 @@
                 println!("hello world!");
               }
               pub fn hide_popup(mut commands: Commands, popup: Res<PopupRef>) {
-                  commands.entity(popup.0).despawn_recursive();
-                  commands.remove_resource::<PopupRef>()
+                // despawns a subtree of entities
+                commands.entity(popup.0).despawn_recursive();
+                // removes a resource there is only one per type per world
+                commands.remove_resource::<PopupRef>()
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### System Queries
+              ```rust
+              fn menu(
+                mut state: ResMut<State<AppState>>,// <- this is a state resource
+                mut interaction_query: Query<
+                    (&Interaction, &mut UiColor), // <- this are components
+                    (Changed<Interaction>, With<Button>),//<- more components
+                    >,
+              ) {
+                  interaction_query.iter() // <- this is a iterator
+                  ...
+              }
+              ```
+            </script>
+          </section>
+          <section data-markdown>
+            <script type="text/template">
+              ### System Queries
+              ```rust
+              for (interaction, mut color) in interaction_query.iter_mut() {
+                match *interaction {
+                    Interaction::Clicked => {
+                        *color = PRESSED_BUTTON.into();
+                        state.set(AppState::InGame).unwrap();
+                    }
+                    Interaction::Hovered => {
+                        *color = HOVERED_BUTTON.into();
+                    }
+                    Interaction::None => {
+                        *color = NORMAL_BUTTON.into();
+                    }
+                }
               }
               ```
             </script>
           </section>
         </section>
-        <section>
+        <!-- <section>
           <section><h1>BEVY Github</h1></section>
           <section
             data-markdown="sections/bevy-readme-slice.md"
             data-separator="^---$"
           ></section>
+        </section> -->
+        <section>
+          <section><h1>BEVY Github</h1></section>
+          <section
+            data-markdown="sections/bevy-readme-slice-2024.md"
+            data-separator="^---$"
+          ></section>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            # Live Examples
+            https://bevyengine.org/examples
+          </script>
         </section>
         <section data-markdown>
           <script type="text/template">
@@ -186,12 +280,22 @@
             git clone https://github.com/bevyengine/bevy
             cd bevy
             git checkout latest
-            git checkout v0.7.0
+            git checkout v0.7.0 <- 2022
+            git checkout v0.15.0 <- 2024
             ```
             Try the examples in the examples folder
             ```zsh
             cargo run --example breakout
             ```
+          </script>
+        </section>
+        <section data-markdown>
+          <script type="text/template">
+            # My Tetris Demo
+            https://simon-an.github.io/bevy-tetris/
+
+            recently updated to Bevy 0.15
+            (will get some updates soon)
           </script>
         </section>
         <section>
@@ -350,7 +454,7 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              ### Explicit System Ordering
+              ### Explicit System Ordering  <- deprecated
               ```rust
               App::new()
                 // order doesn't matter for these systems:
@@ -372,7 +476,7 @@
           </section>
           <section data-markdown>
             <script type="text/template">
-              ### System Sets
+              ### System Sets <- deprecated
               ```rust
                 App::new()
                 .add_plugins(DefaultPlugins)
@@ -842,7 +946,8 @@
           </section>
         </section>
         <section>
-          <section><h1>Coding Score implementation</h1></section>
+          <section><h1>Coding Score implementation</h1>TODO</section>
+        
         </section>
       </div>
     </div>
